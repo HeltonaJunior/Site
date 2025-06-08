@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - PokeCamp</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="/css/recover.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/assets/svg/pokeball.svg" type="image/svg+xml">
+</head>
+<body>
+<%- include('../partials/header', { user: user }) %>
+<main class="main-content container content-container form-page">
+    <section class="form-card">
+        <h2 class="section-title card-title">Verifique o Código</h2>
+        <% if (errorMessage) { %>
+            <div class="alert alert-danger"><%= errorMessage %></div>
+        <% } %>
+        <% if (successMessage) { %>
+            <div class="alert alert-success"><%= successMessage %></div>
+        <% } %>
+        <form action="/verificar" method="POST" id="codeForm" class="auth-form">
+            <div class="otp-group">
+                <% for(let i=1;i<=6;i++){ %>
+                    <input type="text" maxlength="1" class="otp-input" name="c<%= i %>" required>
+                <% } %>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Confirmar</button>
+        </form>
+    </section>
+</main>
+<%- include('../partials/footer') %>
+<script src="/js/otp.js"></script>
+</body>
+</html>
