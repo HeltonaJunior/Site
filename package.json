@@ -16,6 +16,7 @@
   "author": "Helton e Pedro",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
@@ -23,6 +24,7 @@
     "jquery": "^3.7.1",
     "morgan": "^1.10.0",
     "mysql2": "^3.14.1",
+    "nodemailer": "^7.0.3",
     "select2": "^4.1.0-rc.0"
   },
   "devDependencies": {

@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 
 const { db, promiseDb } = require('./db');
 const accountController = require('./accountController');
+const recoverController = require('./recoverController');
 const avatarRoutes = require('./routes/avatar');
 const newsController = require('./newsController');
 
@@ -458,6 +459,84 @@ app.post('/login', redirectIfLoggedIn, async (req, res) => {
     } else {
         req.session.errorMessage = result.message;
         return res.redirect('/login');
+    }
+});
+
+app.get('/recuperar', redirectIfLoggedIn, (req, res) => {
+    res.render('recover/request', { title: 'Recuperar Senha' });
+});
+
+app.post('/recuperar', redirectIfLoggedIn, async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        req.session.errorMessage = 'Informe um email válido.';
+        return res.redirect('/recuperar');
+    }
+    let connection;
+    try {
+        connection = await promiseDb.getConnection();
+        const [rows] = await connection.query('SELECT id FROM accounts WHERE email = ? LIMIT 1', [email]);
+        if (!rows.length) {
+            req.session.errorMessage = 'Email não encontrado.';
+            return res.redirect('/recuperar');
+        }
+        await recoverController.sendCode(email);
+        req.session.resetEmail = email;
+        req.session.successMessage = 'Código enviado para seu email.';
+        return res.redirect('/verificar');
+    } catch (err) {
+        console.error('Erro ao enviar código:', err);
+        req.session.errorMessage = 'Erro ao enviar código.';
+        return res.redirect('/recuperar');
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.get('/verificar', redirectIfLoggedIn, (req, res) => {
+    if (!req.session.resetEmail) return res.redirect('/recuperar');
+    res.render('recover/verify', { title: 'Verificar Código' });
+});
+
+app.post('/verificar', redirectIfLoggedIn, (req, res) => {
+    const email = req.session.resetEmail;
+    if (!email) return res.redirect('/recuperar');
+    const code = [req.body.c1, req.body.c2, req.body.c3, req.body.c4, req.body.c5, req.body.c6].join('');
+    if (recoverController.verifyCode(email, code)) {
+        req.session.verified = true;
+        return res.redirect('/resetar');
+    } else {
+        req.session.errorMessage = 'Código inválido ou expirado.';
+        return res.redirect('/verificar');
+    }
+});
+
+app.get('/resetar', redirectIfLoggedIn, (req, res) => {
+    if (!req.session.verified) return res.redirect('/recuperar');
+    res.render('recover/reset', { title: 'Redefinir Senha' });
+});
+
+app.post('/resetar', redirectIfLoggedIn, async (req, res) => {
+    if (!req.session.verified || !req.session.resetEmail) return res.redirect('/recuperar');
+    const { password, confirm_password } = req.body;
+    if (!password || password !== confirm_password) {
+        req.session.errorMessage = 'Senhas não coincidem.';
+        return res.redirect('/resetar');
+    }
+    if (!accountController.isPasswordStrong(password)) {
+        req.session.errorMessage = 'A senha não atende aos requisitos.';
+        return res.redirect('/resetar');
+    }
+    try {
+        await recoverController.updatePassword(req.session.resetEmail, password);
+        req.session.successMessage = 'Senha atualizada com sucesso!';
+        delete req.session.resetEmail;
+        delete req.session.verified;
+        return res.redirect('/login');
+    } catch (err) {
+        console.error('Erro ao atualizar senha:', err);
+        req.session.errorMessage = 'Erro ao atualizar senha.';
+        return res.redirect('/resetar');
     }
 });
 

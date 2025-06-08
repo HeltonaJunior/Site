@@ -38,9 +38,16 @@ exports.login = async (req) => {
         }
 
         const user = rows[0];
-        const hashedPassword = sha1(password);
+        let passwordMatches = false;
+        if (user.password.length === 40) {
+            // Antigo hash SHA1
+            passwordMatches = user.password === sha1(password);
+        } else {
+            // Hash bcrypt
+            passwordMatches = await require('bcrypt').compare(password, user.password);
+        }
 
-        if (user.password !== hashedPassword) {
+        if (!passwordMatches) {
             return { success: false, message: 'Credenciais inválidas.' };
         }
 
